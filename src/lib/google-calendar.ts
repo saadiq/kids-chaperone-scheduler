@@ -1,7 +1,18 @@
 import { google } from "googleapis";
-import { CalendarEvent, AssignmentStatus } from "./types";
+import { CalendarEvent, AssignmentStatus, KidName } from "./types";
 
 const ADULT_EMAILS = (process.env.ADULT_EMAILS || "").split(",").map((e) => e.trim().toLowerCase());
+const KID_NAMES = (process.env.KID_NAMES || "").split(",").map((n) => n.trim()).filter(Boolean);
+
+function detectKid(title: string): KidName {
+  const lowerTitle = title.toLowerCase();
+  for (const kid of KID_NAMES) {
+    if (lowerTitle.includes(kid.toLowerCase())) {
+      return kid;
+    }
+  }
+  return null;
+}
 
 function getAssignmentStatus(
   attendees: { email?: string | null; responseStatus?: string | null }[] | undefined
@@ -62,14 +73,16 @@ export async function getEvents(accessToken: string): Promise<CalendarEvent[]> {
   return events.map((event) => {
     const { status, assignedAdult } = getAssignmentStatus(event.attendees);
     const isAllDay = !event.start?.dateTime;
+    const title = event.summary || "Untitled Event";
 
     return {
       id: event.id!,
-      title: event.summary || "Untitled Event",
+      title,
       start: event.start?.dateTime || event.start?.date || "",
       end: event.end?.dateTime || event.end?.date || "",
       allDay: isAllDay,
       status,
+      kid: detectKid(title),
       assignedAdult,
     };
   });

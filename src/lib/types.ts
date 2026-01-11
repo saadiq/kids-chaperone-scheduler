@@ -1,5 +1,7 @@
 export type AssignmentStatus = "needs-assignment" | "awaiting-response" | "confirmed";
 
+export type KidName = string | null;
+
 export interface CalendarEvent {
   id: string;
   title: string;
@@ -7,6 +9,7 @@ export interface CalendarEvent {
   end: string;
   allDay: boolean;
   status: AssignmentStatus;
+  kid: KidName;
   assignedAdult: {
     email: string;
     name: string;

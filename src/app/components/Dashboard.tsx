@@ -1,17 +1,72 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
 import { CalendarEvent, Adult } from "@/lib/types";
-import { EventGroup } from "./EventGroup";
+import { EventCard } from "./EventCard";
 import { BatchActionBar } from "./BatchActionBar";
 
 const ADULTS: Adult[] = (process.env.NEXT_PUBLIC_ADULT_EMAILS || "")
   .split(",")
+  .map((email) => email.trim())
+  .filter(Boolean)
   .map((email) => ({
-    email: email.trim(),
-    name: email.trim().split("@")[0],
+    email,
+    name: email.split("@")[0],
   }));
+
+interface DayEvents {
+  date: string;
+  dateLabel: string;
+  kidGroups: { kid: string; events: CalendarEvent[] }[];
+}
+
+function groupEventsByDayAndKid(events: CalendarEvent[]): DayEvents[] {
+  const byDate = new Map<string, CalendarEvent[]>();
+
+  for (const event of events) {
+    const dateKey = event.start.split("T")[0];
+    if (!byDate.has(dateKey)) {
+      byDate.set(dateKey, []);
+    }
+    byDate.get(dateKey)!.push(event);
+  }
+
+  const result: DayEvents[] = [];
+
+  for (const [date, dayEvents] of byDate) {
+    const dateObj = new Date(date + "T12:00:00");
+    const dateLabel = dateObj.toLocaleDateString("en-US", {
+      weekday: "long",
+      month: "short",
+      day: "numeric",
+    });
+
+    const kidMap = new Map<string, CalendarEvent[]>();
+    for (const event of dayEvents) {
+      const kidKey = event.kid || "Other";
+      if (!kidMap.has(kidKey)) {
+        kidMap.set(kidKey, []);
+      }
+      kidMap.get(kidKey)!.push(event);
+    }
+
+    const kidGroups = Array.from(kidMap.entries())
+      .sort(([a], [b]) => {
+        if (a === "Other") return 1;
+        if (b === "Other") return -1;
+        return a.localeCompare(b);
+      })
+      .map(([kid, events]) => ({
+        kid,
+        events: events.sort((a, b) => a.start.localeCompare(b.start)),
+      }));
+
+    result.push({ date, dateLabel, kidGroups });
+  }
+
+  return result.sort((a, b) => a.date.localeCompare(b.date));
+}
 
 export function Dashboard() {
   const { data: session, status } = useSession();
@@ -84,6 +139,8 @@ export function Dashboard() {
     setSelectedAdult("");
   };
 
+  const groupedEvents = useMemo(() => groupEventsByDayAndKid(events), [events]);
+
   if (status === "loading") {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -108,10 +165,6 @@ export function Dashboard() {
       </div>
     );
   }
-
-  const needsAssignment = events.filter((e) => e.status === "needs-assignment");
-  const awaitingResponse = events.filter((e) => e.status === "awaiting-response");
-  const confirmed = events.filter((e) => e.status === "confirmed");
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
@@ -143,10 +196,7 @@ export function Dashboard() {
         {error && (
           <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
             {error}
-            <button
-              onClick={() => setError(null)}
-              className="ml-2 underline"
-            >
+            <button onClick={() => setError(null)} className="ml-2 underline">
               Dismiss
             </button>
           </div>
@@ -159,30 +209,30 @@ export function Dashboard() {
             No upcoming events found
           </p>
         ) : (
-          <>
-            <EventGroup
-              title="Needs Assignment"
-              events={needsAssignment}
-              selectedIds={selectedIds}
-              onToggleSelect={handleToggleSelect}
-              variant="danger"
-            />
-            <EventGroup
-              title="Awaiting Response"
-              events={awaitingResponse}
-              selectedIds={selectedIds}
-              onToggleSelect={handleToggleSelect}
-              variant="warning"
-            />
-            <EventGroup
-              title="Confirmed"
-              events={confirmed}
-              selectedIds={selectedIds}
-              onToggleSelect={handleToggleSelect}
-              defaultCollapsed
-              variant="success"
-            />
-          </>
+          groupedEvents.map((day) => (
+            <div key={day.date} className="space-y-3">
+              <h2 className="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2">
+                {day.dateLabel}
+              </h2>
+              {day.kidGroups.map((group) => (
+                <div key={group.kid} className="ml-2 space-y-2">
+                  <h3 className="text-sm font-medium text-gray-600">
+                    {group.kid}
+                  </h3>
+                  <div className="space-y-2">
+                    {group.events.map((event) => (
+                      <EventCard
+                        key={event.id}
+                        event={event}
+                        selected={selectedIds.has(event.id)}
+                        onToggleSelect={handleToggleSelect}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ))
         )}
       </main>
 
