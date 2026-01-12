@@ -101,6 +101,16 @@ export function groupEventsByDayAndKid(events: CalendarEvent[]): DayEvents[] {
   return result.sort((a, b) => a.date.localeCompare(b.date));
 }
 
+/**
+ * Calculate date range for a filter option.
+ *
+ * Week semantics (US convention):
+ * - Weeks run Sunday through Saturday
+ * - "this-week" returns today through end of Sunday (remaining days in week)
+ * - "next-week" returns next Monday through next Sunday
+ *
+ * All ranges start from today (not historical) since this is a scheduling app.
+ */
 export function getDateRange(filter: DateFilterOption): { start: Date; end: Date } {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -150,6 +160,19 @@ export function getDateRange(filter: DateFilterOption): { start: Date; end: Date
   }
 }
 
+/**
+ * Check if an event falls within a date range.
+ * Accepts either an event object or a pre-parsed Date for performance.
+ */
+export function isEventInDateRange(
+  eventOrDate: CalendarEvent | Date,
+  filter: DateFilterOption
+): boolean {
+  const { start, end } = getDateRange(filter);
+  const eventDate = eventOrDate instanceof Date ? eventOrDate : new Date(eventOrDate.start);
+  return eventDate >= start && eventDate <= end;
+}
+
 export function filterEvents(
   events: CalendarEvent[],
   statusFilter: "all" | AssignmentStatus,
@@ -171,12 +194,8 @@ export function filterEvents(
         return false;
       }
     }
-    if (dateFilter) {
-      const { start, end } = getDateRange(dateFilter);
-      const eventDate = new Date(event.start);
-      if (eventDate < start || eventDate > end) {
-        return false;
-      }
+    if (dateFilter && !isEventInDateRange(event, dateFilter)) {
+      return false;
     }
     return true;
   });
