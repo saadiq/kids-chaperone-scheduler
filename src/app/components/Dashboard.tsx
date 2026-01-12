@@ -35,6 +35,7 @@ export function Dashboard() {
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [assigneeFilter, setAssigneeFilter] = useState("all");
 
   const fetchEvents = useCallback(async () => {
     setIsLoading(true);
@@ -111,9 +112,23 @@ export function Dashboard() {
     setSelectedAdult("");
   };
 
+  const handleAccept = async (eventId: string) => {
+    try {
+      const res = await fetch("/api/accept", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eventId }),
+      });
+      if (!res.ok) throw new Error("Failed to accept invite");
+      await fetchEvents();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to accept invite");
+    }
+  };
+
   const filteredEvents = useMemo(
-    () => filterEvents(events, statusFilter, searchQuery),
-    [events, statusFilter, searchQuery]
+    () => filterEvents(events, statusFilter, searchQuery, assigneeFilter),
+    [events, statusFilter, searchQuery, assigneeFilter]
   );
 
   const groupedEvents = useMemo(
@@ -195,6 +210,19 @@ export function Dashboard() {
               </button>
             ))}
           </div>
+          <select
+            value={assigneeFilter}
+            onChange={(e) => setAssigneeFilter(e.target.value)}
+            className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white"
+          >
+            <option value="all">All assignees</option>
+            <option value="unassigned">Unassigned</option>
+            {ADULTS.map((adult) => (
+              <option key={adult.email} value={adult.email}>
+                {adult.name}
+              </option>
+            ))}
+          </select>
           <input
             type="text"
             placeholder="Search events..."
@@ -251,6 +279,8 @@ export function Dashboard() {
                             event={event}
                             selected={selectedIds.has(event.id)}
                             onToggleSelect={handleToggleSelect}
+                            currentUserEmail={session.user?.email ?? undefined}
+                            onAccept={handleAccept}
                           />
                         ))}
                       </div>
