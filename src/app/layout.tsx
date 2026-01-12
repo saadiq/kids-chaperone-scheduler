@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Kids Activity Scheduler",
+  title: "Kids Chaperone Scheduler",
   description: "Manage kids activity assignments",
 };
 

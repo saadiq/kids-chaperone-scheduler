@@ -1,6 +1,6 @@
-# Kids Activity Scheduler
+# Kids Chaperone Scheduler
 
-A webapp for managing kids' activity schedules. Connects to Google Calendar and ensures every event has an adult assigned.
+A webapp for managing kids' activity chaperone schedules. Connects to Google Calendar and ensures every event has an adult assigned.
 
 ## Setup
 

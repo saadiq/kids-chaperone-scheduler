@@ -1,4 +1,4 @@
-# Kids Activity Scheduler Implementation Plan
+# Kids Chaperone Scheduler Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
@@ -182,7 +182,7 @@ import { Providers } from "./providers";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Kids Activity Scheduler",
+  title: "Kids Chaperone Scheduler",
   description: "Manage kids activity assignments",
 };
 
@@ -866,7 +866,7 @@ export function Dashboard() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4">
         <h1 className="text-2xl font-bold text-gray-900">
-          Kids Activity Scheduler
+          Kids Chaperone Scheduler
         </h1>
         <p className="text-gray-600">Sign in to manage activity assignments</p>
         <button
@@ -888,7 +888,7 @@ export function Dashboard() {
       <header className="bg-white border-b border-gray-200 px-4 py-4">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <h1 className="text-xl font-bold text-gray-900">
-            Kids Activity Scheduler
+            Kids Chaperone Scheduler
           </h1>
           <div className="flex items-center gap-4">
             <button
@@ -1022,7 +1022,7 @@ Delete any unused default files from create-next-app (like `app/favicon.ico` if 
 Replace `README.md` with:
 
 ```markdown
-# Kids Activity Scheduler
+# Kids Chaperone Scheduler
 
 A webapp for managing kids' activity schedules. Connects to Google Calendar and ensures every event has an adult assigned.
 

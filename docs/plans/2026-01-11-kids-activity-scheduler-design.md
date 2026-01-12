@@ -1,4 +1,4 @@
-# Kids Activity Scheduler - Design Document
+# Kids Chaperone Scheduler - Design Document
 
 A webapp for managing kids' activity schedules, ensuring every event has an adult assigned.
 
