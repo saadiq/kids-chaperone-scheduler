@@ -18,11 +18,11 @@ const ADULTS: Adult[] = (process.env.NEXT_PUBLIC_ADULT_EMAILS || "")
 
 type StatusFilter = "all" | AssignmentStatus;
 
-const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
-  { value: "all", label: "All" },
-  { value: "needs-assignment", label: "Needs Assignment" },
-  { value: "awaiting-response", label: "Pending" },
-  { value: "confirmed", label: "Confirmed" },
+const STATUS_OPTIONS: { value: StatusFilter; label: string; shortLabel: string }[] = [
+  { value: "all", label: "All", shortLabel: "All" },
+  { value: "needs-assignment", label: "Needs Assignment", shortLabel: "Unassigned" },
+  { value: "awaiting-response", label: "Pending", shortLabel: "Pending" },
+  { value: "confirmed", label: "Confirmed", shortLabel: "Confirmed" },
 ];
 
 const DATE_FILTER_OPTIONS: { value: DateFilterOption; label: string }[] = [
@@ -38,24 +38,29 @@ function FilterButton({
   active,
   onClick,
   label,
+  shortLabel,
   count,
+  hideCount,
 }: {
   active: boolean;
   onClick: () => void;
   label: string;
+  shortLabel?: string;
   count: number;
+  hideCount?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
-      className={`px-3 py-1.5 text-sm rounded-lg transition-all duration-200 ${
+      className={`px-2 sm:px-3 py-1.5 text-xs sm:text-sm rounded-lg transition-all duration-200 whitespace-nowrap flex-shrink-0 ${
         active
           ? "bg-orange-500 text-white shadow-sm"
           : "bg-white text-stone-700 hover:bg-stone-100 border border-stone-300"
       }`}
     >
-      {label}
-      <span className="ml-1 text-xs opacity-75">({count})</span>
+      <span className="sm:hidden">{shortLabel || label}</span>
+      <span className="hidden sm:inline">{label}</span>
+      {!hideCount && <span className="ml-1 text-xs opacity-75">({count})</span>}
     </button>
   );
 }
@@ -251,47 +256,60 @@ export function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-stone-50 pb-24">
-      <header className="bg-white border-b border-stone-200 px-4 py-4">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <h1 className="text-xl font-bold text-stone-900">Kids Chaperone Scheduler</h1>
-          <div className="flex items-center gap-4">
-            <button
-              onClick={fetchEvents}
-              disabled={isLoading}
-              className="text-sm text-orange-600 hover:text-orange-700 disabled:opacity-50 transition-colors"
-            >
-              {isLoading ? "Refreshing..." : "Refresh"}
-            </button>
-            <span className="text-sm text-stone-600">{session.user?.email}</span>
-            <button
-              onClick={() => signOut()}
-              className="text-sm text-stone-700 hover:text-stone-900 transition-colors"
-            >
-              Sign out
-            </button>
+    <div className="min-h-screen bg-stone-50 pb-28 sm:pb-24">
+      <header className="bg-white border-b border-stone-200 px-4 py-3 sm:py-4">
+        <div className="max-w-4xl mx-auto">
+          {/* Mobile: stacked, Desktop: inline */}
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <h1 className="text-lg sm:text-xl font-bold text-stone-900">Kids Chaperone Scheduler</h1>
+            <div className="flex items-center gap-3 sm:gap-4 text-sm">
+              <button
+                onClick={fetchEvents}
+                disabled={isLoading}
+                className="text-orange-600 hover:text-orange-700 disabled:opacity-50 transition-colors"
+              >
+                {isLoading ? "Refreshing..." : "Refresh"}
+              </button>
+              <span className="text-stone-600 truncate max-w-32 sm:max-w-none">{session.user?.email}</span>
+              <button
+                onClick={() => signOut()}
+                className="text-stone-700 hover:text-stone-900 transition-colors"
+              >
+                Sign out
+              </button>
+            </div>
           </div>
         </div>
       </header>
 
-      <div className="max-w-4xl mx-auto px-4 py-4 space-y-4">
-        {/* Filters */}
-        <div className="flex flex-wrap gap-4 items-center">
-          <div className="flex gap-1">
-            {STATUS_OPTIONS.map((opt) => (
-              <FilterButton
-                key={opt.value}
-                active={statusFilter === opt.value}
-                onClick={() => setStatusFilter(opt.value)}
-                label={opt.label}
-                count={statusCounts[opt.value]}
-              />
-            ))}
-          </div>
+      <div className="max-w-4xl mx-auto px-4 py-4 space-y-3 sm:space-y-4">
+        {/* Status Filters - horizontally scrollable on mobile */}
+        <div className="flex gap-1 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 sm:overflow-visible sm:flex-wrap">
+          {STATUS_OPTIONS.map((opt) => (
+            <FilterButton
+              key={opt.value}
+              active={statusFilter === opt.value}
+              onClick={() => setStatusFilter(opt.value)}
+              label={opt.label}
+              shortLabel={opt.shortLabel}
+              count={statusCounts[opt.value]}
+            />
+          ))}
+        </div>
+
+        {/* Search and Assignee Filter */}
+        <div className="flex flex-col gap-2 sm:flex-row sm:gap-4 sm:items-center">
+          <input
+            type="text"
+            placeholder="Search events..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="px-3 py-2 sm:py-1.5 text-sm border border-stone-300 rounded-lg bg-white w-full sm:flex-1 sm:min-w-48 focus:ring-2 focus:ring-orange-500 focus:ring-offset-1 focus:outline-none focus:border-orange-500 placeholder:text-stone-500 transition-all duration-200"
+          />
           <select
             value={assigneeFilter}
             onChange={(e) => setAssigneeFilter(e.target.value)}
-            className="px-3 py-1.5 text-sm border border-stone-300 rounded-lg bg-white text-stone-700 focus:ring-2 focus:ring-orange-500 focus:ring-offset-1 focus:outline-none focus:border-orange-500 transition-all duration-200"
+            className="px-3 py-2 sm:py-1.5 text-sm border border-stone-300 rounded-lg bg-white text-stone-700 focus:ring-2 focus:ring-orange-500 focus:ring-offset-1 focus:outline-none focus:border-orange-500 transition-all duration-200"
           >
             <option value="all">All assignees</option>
             <option value="unassigned">Unassigned</option>
@@ -301,17 +319,10 @@ export function Dashboard() {
               </option>
             ))}
           </select>
-          <input
-            type="text"
-            placeholder="Search events..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="px-3 py-1.5 text-sm border border-stone-300 rounded-lg bg-white flex-1 min-w-48 focus:ring-2 focus:ring-orange-500 focus:ring-offset-1 focus:outline-none focus:border-orange-500 placeholder:text-stone-500 transition-all duration-200"
-          />
         </div>
 
-        {/* Date Filter */}
-        <div className="flex gap-1 flex-wrap">
+        {/* Date Filter - horizontally scrollable on mobile */}
+        <div className="flex gap-1 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 sm:overflow-visible sm:flex-wrap">
           {DATE_FILTER_OPTIONS.map((opt) => (
             <FilterButton
               key={opt.value}
