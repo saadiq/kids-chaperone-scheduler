@@ -1,5 +1,13 @@
 export type AssignmentStatus = "needs-assignment" | "awaiting-response" | "confirmed";
 
+export type DateFilterOption =
+  | "this-week"
+  | "next-week"
+  | "this-month"
+  | "7-days"
+  | "14-days"
+  | "21-days";
+
 export type KidName = string | null;
 
 export interface CalendarEvent {
