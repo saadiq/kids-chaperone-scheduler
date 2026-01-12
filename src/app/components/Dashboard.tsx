@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
-import { CalendarEvent, Adult } from "@/lib/types";
+import { CalendarEvent, Adult, AssignmentStatus } from "@/lib/types";
+import { groupEventsByDayAndKid, filterEvents } from "@/lib/event-utils";
 import { EventCard } from "./EventCard";
 import { BatchActionBar } from "./BatchActionBar";
 
@@ -15,58 +16,14 @@ const ADULTS: Adult[] = (process.env.NEXT_PUBLIC_ADULT_EMAILS || "")
     name: email.split("@")[0],
   }));
 
-interface DayEvents {
-  date: string;
-  dateLabel: string;
-  kidGroups: { kid: string; events: CalendarEvent[] }[];
-}
+type StatusFilter = "all" | AssignmentStatus;
 
-function groupEventsByDayAndKid(events: CalendarEvent[]): DayEvents[] {
-  const byDate = new Map<string, CalendarEvent[]>();
-
-  for (const event of events) {
-    const dateKey = event.start.split("T")[0];
-    if (!byDate.has(dateKey)) {
-      byDate.set(dateKey, []);
-    }
-    byDate.get(dateKey)!.push(event);
-  }
-
-  const result: DayEvents[] = [];
-
-  for (const [date, dayEvents] of byDate) {
-    const dateObj = new Date(date + "T12:00:00");
-    const dateLabel = dateObj.toLocaleDateString("en-US", {
-      weekday: "long",
-      month: "short",
-      day: "numeric",
-    });
-
-    const kidMap = new Map<string, CalendarEvent[]>();
-    for (const event of dayEvents) {
-      const kidKey = event.kid || "Other";
-      if (!kidMap.has(kidKey)) {
-        kidMap.set(kidKey, []);
-      }
-      kidMap.get(kidKey)!.push(event);
-    }
-
-    const kidGroups = Array.from(kidMap.entries())
-      .sort(([a], [b]) => {
-        if (a === "Other") return 1;
-        if (b === "Other") return -1;
-        return a.localeCompare(b);
-      })
-      .map(([kid, events]) => ({
-        kid,
-        events: events.sort((a, b) => a.start.localeCompare(b.start)),
-      }));
-
-    result.push({ date, dateLabel, kidGroups });
-  }
-
-  return result.sort((a, b) => a.date.localeCompare(b.date));
-}
+const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "needs-assignment", label: "Needs Assignment" },
+  { value: "awaiting-response", label: "Pending" },
+  { value: "confirmed", label: "Confirmed" },
+];
 
 export function Dashboard() {
   const { data: session, status } = useSession();
@@ -76,6 +33,8 @@ export function Dashboard() {
   const [isLoading, setIsLoading] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const fetchEvents = useCallback(async () => {
     setIsLoading(true);
@@ -110,6 +69,19 @@ export function Dashboard() {
     });
   };
 
+  const handleToggleKidGroup = (eventIds: string[]) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      const allSelected = eventIds.every((id) => prev.has(id));
+      if (allSelected) {
+        eventIds.forEach((id) => next.delete(id));
+      } else {
+        eventIds.forEach((id) => next.add(id));
+      }
+      return next;
+    });
+  };
+
   const handleAssign = async () => {
     if (!selectedAdult || selectedIds.size === 0) return;
 
@@ -139,7 +111,23 @@ export function Dashboard() {
     setSelectedAdult("");
   };
 
-  const groupedEvents = useMemo(() => groupEventsByDayAndKid(events), [events]);
+  const filteredEvents = useMemo(
+    () => filterEvents(events, statusFilter, searchQuery),
+    [events, statusFilter, searchQuery]
+  );
+
+  const groupedEvents = useMemo(
+    () => groupEventsByDayAndKid(filteredEvents),
+    [filteredEvents]
+  );
+
+  const statusCounts = useMemo(() => {
+    const counts = { all: events.length, "needs-assignment": 0, "awaiting-response": 0, confirmed: 0 };
+    for (const event of events) {
+      counts[event.status]++;
+    }
+    return counts;
+  }, [events]);
 
   if (status === "loading") {
     return (
@@ -152,9 +140,7 @@ export function Dashboard() {
   if (!session) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4">
-        <h1 className="text-2xl font-bold text-gray-900">
-          Kids Activity Scheduler
-        </h1>
+        <h1 className="text-2xl font-bold text-gray-900">Kids Activity Scheduler</h1>
         <p className="text-gray-600">Sign in to manage activity assignments</p>
         <button
           onClick={() => signIn("google")}
@@ -170,9 +156,7 @@ export function Dashboard() {
     <div className="min-h-screen bg-gray-50 pb-24">
       <header className="bg-white border-b border-gray-200 px-4 py-4">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <h1 className="text-xl font-bold text-gray-900">
-            Kids Activity Scheduler
-          </h1>
+          <h1 className="text-xl font-bold text-gray-900">Kids Activity Scheduler</h1>
           <div className="flex items-center gap-4">
             <button
               onClick={fetchEvents}
@@ -192,7 +176,34 @@ export function Dashboard() {
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto p-4 space-y-6">
+      <div className="max-w-4xl mx-auto px-4 py-4 space-y-4">
+        {/* Filters */}
+        <div className="flex flex-wrap gap-4 items-center">
+          <div className="flex gap-1">
+            {STATUS_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setStatusFilter(opt.value)}
+                className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                  statusFilter === opt.value
+                    ? "bg-blue-600 text-white"
+                    : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
+                }`}
+              >
+                {opt.label}
+                <span className="ml-1 text-xs opacity-75">({statusCounts[opt.value]})</span>
+              </button>
+            ))}
+          </div>
+          <input
+            type="text"
+            placeholder="Search events..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white flex-1 min-w-48"
+          />
+        </div>
+
         {error && (
           <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
             {error}
@@ -204,37 +215,53 @@ export function Dashboard() {
 
         {isLoading && events.length === 0 ? (
           <p className="text-center text-gray-500 py-12">Loading events...</p>
-        ) : events.length === 0 ? (
+        ) : filteredEvents.length === 0 ? (
           <p className="text-center text-gray-500 py-12">
-            No upcoming events found
+            {events.length === 0 ? "No upcoming events found" : "No events match filters"}
           </p>
         ) : (
-          groupedEvents.map((day) => (
-            <div key={day.date} className="space-y-3">
-              <h2 className="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2">
-                {day.dateLabel}
-              </h2>
-              {day.kidGroups.map((group) => (
-                <div key={group.kid} className="ml-2 space-y-2">
-                  <h3 className="text-sm font-medium text-gray-600">
-                    {group.kid}
-                  </h3>
-                  <div className="space-y-2">
-                    {group.events.map((event) => (
-                      <EventCard
-                        key={event.id}
-                        event={event}
-                        selected={selectedIds.has(event.id)}
-                        onToggleSelect={handleToggleSelect}
-                      />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ))
+          <div className="space-y-6">
+            {groupedEvents.map((day) => (
+              <div key={day.date} className="space-y-3">
+                <h2 className="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2">
+                  {day.dateLabel}
+                </h2>
+                {day.kidGroups.map((group) => {
+                  const groupEventIds = group.events.map((e) => e.id);
+                  const allSelected = groupEventIds.every((id) => selectedIds.has(id));
+                  const someSelected = groupEventIds.some((id) => selectedIds.has(id));
+                  return (
+                    <div key={group.kid} className="ml-2 space-y-1">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={allSelected}
+                          ref={(el) => {
+                            if (el) el.indeterminate = someSelected && !allSelected;
+                          }}
+                          onChange={() => handleToggleKidGroup(groupEventIds)}
+                          className="h-4 w-4 text-blue-600 rounded"
+                        />
+                        <span className="text-sm font-medium text-gray-600">{group.kid}</span>
+                      </label>
+                      <div className="space-y-1">
+                        {group.events.map((event) => (
+                          <EventCard
+                            key={event.id}
+                            event={event}
+                            selected={selectedIds.has(event.id)}
+                            onToggleSelect={handleToggleSelect}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
         )}
-      </main>
+      </div>
 
       <BatchActionBar
         selectedCount={selectedIds.size}
