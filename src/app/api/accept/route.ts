@@ -10,23 +10,29 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  let body;
   try {
-    const { eventId } = await request.json();
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
 
-    if (!eventId) {
-      return NextResponse.json(
-        { error: "eventId is required" },
-        { status: 400 }
-      );
-    }
+  const { eventId } = body;
 
+  if (!eventId || typeof eventId !== "string") {
+    return NextResponse.json(
+      { error: "eventId must be a non-empty string" },
+      { status: 400 }
+    );
+  }
+
+  try {
     await acceptEventInvite(session.accessToken, eventId, session.user.email);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Failed to accept invite:", error);
-    return NextResponse.json(
-      { error: "Failed to accept invite" },
-      { status: 500 }
-    );
+    const message = error instanceof Error ? error.message : "Failed to accept invite";
+    const status = message.includes("not an attendee") ? 403 : 500;
+    return NextResponse.json({ error: message }, { status });
   }
 }

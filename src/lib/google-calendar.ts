@@ -92,12 +92,18 @@ export async function acceptEventInvite(
   const event = await calendar.events.get({ calendarId, eventId });
   const attendees = event.data.attendees || [];
 
+  let userFound = false;
   const updatedAttendees = attendees.map((attendee) => {
     if (attendee.email?.toLowerCase() === userEmail.toLowerCase()) {
+      userFound = true;
       return { ...attendee, responseStatus: "accepted" };
     }
     return attendee;
   });
+
+  if (!userFound) {
+    throw new Error("User is not an attendee of this event");
+  }
 
   await calendar.events.patch({
     calendarId,
