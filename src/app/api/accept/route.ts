@@ -31,6 +31,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Failed to accept invite:", error);
+    const errorStatus = (error as { status?: number }).status;
+    if (errorStatus === 401) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const message = error instanceof Error ? error.message : "Failed to accept invite";
     const status = message.includes("not an attendee") ? 403 : 500;
     return NextResponse.json({ error: message }, { status });
