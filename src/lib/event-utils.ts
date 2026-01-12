@@ -104,7 +104,8 @@ export function groupEventsByDayAndKid(events: CalendarEvent[]): DayEvents[] {
 export function filterEvents(
   events: CalendarEvent[],
   statusFilter: "all" | AssignmentStatus,
-  searchQuery: string
+  searchQuery: string,
+  assigneeFilter: string = "all"
 ): CalendarEvent[] {
   return events.filter((event) => {
     if (statusFilter !== "all" && event.status !== statusFilter) {
@@ -112,6 +113,13 @@ export function filterEvents(
     }
     if (searchQuery && !event.title.toLowerCase().includes(searchQuery.toLowerCase())) {
       return false;
+    }
+    if (assigneeFilter !== "all") {
+      if (assigneeFilter === "unassigned") {
+        if (event.assignedAdult !== null) return false;
+      } else if (event.assignedAdult?.email !== assigneeFilter) {
+        return false;
+      }
     }
     return true;
   });
