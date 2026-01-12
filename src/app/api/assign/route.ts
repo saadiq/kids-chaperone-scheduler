@@ -24,8 +24,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Failed to assign adult:", error);
-    const status = (error as { status?: number }).status;
-    if (status === 401) {
+    const errorStatus = (error as { status?: number }).status;
+    if (errorStatus === 401) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     return NextResponse.json(
