@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
 import { CalendarEvent, Adult, AssignmentStatus, DateFilterOption } from "@/lib/types";
-import { groupEventsByDayAndKid, filterEvents, getDateRange } from "@/lib/event-utils";
+import { groupEventsByDayAndKid, filterEvents, isEventInDateRange } from "@/lib/event-utils";
 import { EventCard } from "./EventCard";
 import { BatchActionBar } from "./BatchActionBar";
 
@@ -33,6 +33,32 @@ const DATE_FILTER_OPTIONS: { value: DateFilterOption; label: string }[] = [
   { value: "14-days", label: "14 Days" },
   { value: "21-days", label: "21 Days" },
 ];
+
+function FilterButton({
+  active,
+  onClick,
+  label,
+  count,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  count: number;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+        active
+          ? "bg-blue-600 text-white"
+          : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
+      }`}
+    >
+      {label}
+      <span className="ml-1 text-xs opacity-75">({count})</span>
+    </button>
+  );
+}
 
 export function Dashboard() {
   const { data: session, status } = useSession();
@@ -73,12 +99,7 @@ export function Dashboard() {
     if (hasInitializedDateFilter.current || events.length === 0) return;
     hasInitializedDateFilter.current = true;
 
-    const { start, end } = getDateRange("this-week");
-    const thisWeekCount = events.filter((event) => {
-      const eventDate = new Date(event.start);
-      return eventDate >= start && eventDate <= end;
-    }).length;
-
+    const thisWeekCount = events.filter((e) => isEventInDateRange(e, "this-week")).length;
     if (thisWeekCount === 0) {
       setDateFilter("next-week");
     }
@@ -179,12 +200,12 @@ export function Dashboard() {
       "14-days": 0,
       "21-days": 0,
     };
+    // Pre-parse dates once for performance
+    const eventDates = events.map((e) => new Date(e.start));
     for (const option of DATE_FILTER_OPTIONS) {
-      const { start, end } = getDateRange(option.value);
-      counts[option.value] = events.filter((event) => {
-        const eventDate = new Date(event.start);
-        return eventDate >= start && eventDate <= end;
-      }).length;
+      counts[option.value] = eventDates.filter((date) =>
+        isEventInDateRange(date, option.value)
+      ).length;
     }
     return counts;
   }, [events]);
@@ -241,18 +262,13 @@ export function Dashboard() {
         <div className="flex flex-wrap gap-4 items-center">
           <div className="flex gap-1">
             {STATUS_OPTIONS.map((opt) => (
-              <button
+              <FilterButton
                 key={opt.value}
+                active={statusFilter === opt.value}
                 onClick={() => setStatusFilter(opt.value)}
-                className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
-                  statusFilter === opt.value
-                    ? "bg-blue-600 text-white"
-                    : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
-                }`}
-              >
-                {opt.label}
-                <span className="ml-1 text-xs opacity-75">({statusCounts[opt.value]})</span>
-              </button>
+                label={opt.label}
+                count={statusCounts[opt.value]}
+              />
             ))}
           </div>
           <select
@@ -280,18 +296,13 @@ export function Dashboard() {
         {/* Date Filter */}
         <div className="flex gap-1 flex-wrap">
           {DATE_FILTER_OPTIONS.map((opt) => (
-            <button
+            <FilterButton
               key={opt.value}
+              active={dateFilter === opt.value}
               onClick={() => setDateFilter(opt.value)}
-              className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
-                dateFilter === opt.value
-                  ? "bg-blue-600 text-white"
-                  : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
-              }`}
-            >
-              {opt.label}
-              <span className="ml-1 text-xs opacity-75">({dateCounts[opt.value]})</span>
-            </button>
+              label={opt.label}
+              count={dateCounts[opt.value]}
+            />
           ))}
         </div>
 
