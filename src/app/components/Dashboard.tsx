@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
-import { CalendarEvent, Adult, AssignmentStatus } from "@/lib/types";
-import { groupEventsByDayAndKid, filterEvents } from "@/lib/event-utils";
+import { CalendarEvent, Adult, AssignmentStatus, DateFilterOption } from "@/lib/types";
+import { groupEventsByDayAndKid, filterEvents, getDateRange } from "@/lib/event-utils";
 import { EventCard } from "./EventCard";
 import { BatchActionBar } from "./BatchActionBar";
 
@@ -25,6 +25,15 @@ const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
   { value: "confirmed", label: "Confirmed" },
 ];
 
+const DATE_FILTER_OPTIONS: { value: DateFilterOption; label: string }[] = [
+  { value: "this-week", label: "This Week" },
+  { value: "next-week", label: "Next Week" },
+  { value: "this-month", label: "This Month" },
+  { value: "7-days", label: "7 Days" },
+  { value: "14-days", label: "14 Days" },
+  { value: "21-days", label: "21 Days" },
+];
+
 export function Dashboard() {
   const { data: session, status } = useSession();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -36,6 +45,8 @@ export function Dashboard() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [assigneeFilter, setAssigneeFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState<DateFilterOption>("this-week");
+  const hasInitializedDateFilter = useRef(false);
 
   const fetchEvents = useCallback(async () => {
     setIsLoading(true);
@@ -57,6 +68,21 @@ export function Dashboard() {
       fetchEvents();
     }
   }, [session, fetchEvents]);
+
+  useEffect(() => {
+    if (hasInitializedDateFilter.current || events.length === 0) return;
+    hasInitializedDateFilter.current = true;
+
+    const { start, end } = getDateRange("this-week");
+    const thisWeekCount = events.filter((event) => {
+      const eventDate = new Date(event.start);
+      return eventDate >= start && eventDate <= end;
+    }).length;
+
+    if (thisWeekCount === 0) {
+      setDateFilter("next-week");
+    }
+  }, [events]);
 
   const handleToggleSelect = (id: string) => {
     setSelectedIds((prev) => {
@@ -127,8 +153,8 @@ export function Dashboard() {
   };
 
   const filteredEvents = useMemo(
-    () => filterEvents(events, statusFilter, searchQuery, assigneeFilter),
-    [events, statusFilter, searchQuery, assigneeFilter]
+    () => filterEvents(events, statusFilter, searchQuery, assigneeFilter, dateFilter),
+    [events, statusFilter, searchQuery, assigneeFilter, dateFilter]
   );
 
   const groupedEvents = useMemo(
@@ -144,6 +170,25 @@ export function Dashboard() {
     return counts;
   }, [events]);
 
+  const dateCounts = useMemo(() => {
+    const counts: Record<DateFilterOption, number> = {
+      "this-week": 0,
+      "next-week": 0,
+      "this-month": 0,
+      "7-days": 0,
+      "14-days": 0,
+      "21-days": 0,
+    };
+    for (const option of DATE_FILTER_OPTIONS) {
+      const { start, end } = getDateRange(option.value);
+      counts[option.value] = events.filter((event) => {
+        const eventDate = new Date(event.start);
+        return eventDate >= start && eventDate <= end;
+      }).length;
+    }
+    return counts;
+  }, [events]);
+
   if (status === "loading") {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -155,7 +200,7 @@ export function Dashboard() {
   if (!session) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4">
-        <h1 className="text-2xl font-bold text-gray-900">Kids Activity Scheduler</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Kids Chaperone Scheduler</h1>
         <p className="text-gray-600">Sign in to manage activity assignments</p>
         <button
           onClick={() => signIn("google")}
@@ -171,7 +216,7 @@ export function Dashboard() {
     <div className="min-h-screen bg-gray-50 pb-24">
       <header className="bg-white border-b border-gray-200 px-4 py-4">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <h1 className="text-xl font-bold text-gray-900">Kids Activity Scheduler</h1>
+          <h1 className="text-xl font-bold text-gray-900">Kids Chaperone Scheduler</h1>
           <div className="flex items-center gap-4">
             <button
               onClick={fetchEvents}
@@ -230,6 +275,24 @@ export function Dashboard() {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white flex-1 min-w-48"
           />
+        </div>
+
+        {/* Date Filter */}
+        <div className="flex gap-1 flex-wrap">
+          {DATE_FILTER_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setDateFilter(opt.value)}
+              className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                dateFilter === opt.value
+                  ? "bg-blue-600 text-white"
+                  : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
+              }`}
+            >
+              {opt.label}
+              <span className="ml-1 text-xs opacity-75">({dateCounts[opt.value]})</span>
+            </button>
+          ))}
         </div>
 
         {error && (
