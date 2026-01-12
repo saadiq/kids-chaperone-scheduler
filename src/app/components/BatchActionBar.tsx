@@ -27,7 +27,7 @@ export function BatchActionBar({
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg p-4">
       <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
-        <span className="text-sm font-medium text-gray-700">
+        <span className="text-sm font-medium text-gray-900">
           {selectedCount} event{selectedCount !== 1 ? "s" : ""} selected
         </span>
         <div className="flex items-center gap-3">
@@ -45,7 +45,7 @@ export function BatchActionBar({
           </button>
           <button
             onClick={onClear}
-            className="px-4 py-2 text-gray-600 hover:text-gray-800 text-sm"
+            className="px-4 py-2 text-gray-700 hover:text-gray-900 text-sm"
           >
             Clear
           </button>

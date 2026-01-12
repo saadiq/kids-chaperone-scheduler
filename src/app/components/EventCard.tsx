@@ -29,7 +29,7 @@ function getStatusBadge(status: CalendarEvent["status"]) {
       );
     case "awaiting-response":
       return (
-        <span className="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 rounded">
+        <span className="px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-900 rounded">
           Pending
         </span>
       );
@@ -58,23 +58,23 @@ export function EventCard({
   return (
     <div
       className={`p-3 border rounded-lg flex items-center gap-3 ${
-        selected ? "border-blue-500 bg-blue-50" : "border-gray-200 bg-white"
+        selected ? "border-blue-600 bg-blue-100 ring-1 ring-blue-600" : "border-gray-200 bg-white"
       }`}
     >
       <input
         type="checkbox"
         checked={selected}
         onChange={() => onToggleSelect(event.id)}
-        className="h-4 w-4 text-blue-600 rounded"
+        className="h-4 w-4 text-blue-600 rounded accent-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
       />
-      <span className="text-sm text-gray-500 w-16 flex-shrink-0">
+      <span className="text-sm text-gray-600 w-16 flex-shrink-0">
         {formatTime(event.start, event.allDay)}
       </span>
       <span className="font-medium text-gray-900 flex-1 truncate">
         {event.title}
       </span>
       {event.assignedAdult && (
-        <span className="text-sm text-gray-500 truncate max-w-32">
+        <span className="text-sm text-gray-600 truncate max-w-32">
           {event.assignedAdult.name}
         </span>
       )}
