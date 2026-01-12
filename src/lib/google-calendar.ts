@@ -77,3 +77,33 @@ export async function assignAdultToEvents(
     });
   }
 }
+
+export async function acceptEventInvite(
+  accessToken: string,
+  eventId: string,
+  userEmail: string
+): Promise<void> {
+  const oauth2Client = new google.auth.OAuth2();
+  oauth2Client.setCredentials({ access_token: accessToken });
+
+  const calendar = google.calendar({ version: "v3", auth: oauth2Client });
+  const calendarId = process.env.GOOGLE_CALENDAR_ID!;
+
+  const event = await calendar.events.get({ calendarId, eventId });
+  const attendees = event.data.attendees || [];
+
+  const updatedAttendees = attendees.map((attendee) => {
+    if (attendee.email?.toLowerCase() === userEmail.toLowerCase()) {
+      return { ...attendee, responseStatus: "accepted" };
+    }
+    return attendee;
+  });
+
+  await calendar.events.patch({
+    calendarId,
+    eventId,
+    requestBody: {
+      attendees: updatedAttendees,
+    },
+  });
+}
