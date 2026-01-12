@@ -1,4 +1,4 @@
-import { CalendarEvent, AssignmentStatus, KidName } from "./types";
+import { CalendarEvent, AssignmentStatus, KidName, DateFilterOption } from "./types";
 
 export interface DayEvents {
   date: string;
@@ -101,11 +101,61 @@ export function groupEventsByDayAndKid(events: CalendarEvent[]): DayEvents[] {
   return result.sort((a, b) => a.date.localeCompare(b.date));
 }
 
+export function getDateRange(filter: DateFilterOption): { start: Date; end: Date } {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  switch (filter) {
+    case "this-week": {
+      const dayOfWeek = today.getDay();
+      const daysUntilSunday = dayOfWeek === 0 ? 0 : 7 - dayOfWeek;
+      const endOfWeek = new Date(today);
+      endOfWeek.setDate(today.getDate() + daysUntilSunday);
+      endOfWeek.setHours(23, 59, 59, 999);
+      return { start: today, end: endOfWeek };
+    }
+    case "next-week": {
+      const dayOfWeek = today.getDay();
+      const daysUntilNextMonday = dayOfWeek === 0 ? 1 : 8 - dayOfWeek;
+      const nextMonday = new Date(today);
+      nextMonday.setDate(today.getDate() + daysUntilNextMonday);
+      const nextSunday = new Date(nextMonday);
+      nextSunday.setDate(nextMonday.getDate() + 6);
+      nextSunday.setHours(23, 59, 59, 999);
+      return { start: nextMonday, end: nextSunday };
+    }
+    case "this-month": {
+      const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      endOfMonth.setHours(23, 59, 59, 999);
+      return { start: today, end: endOfMonth };
+    }
+    case "7-days": {
+      const end = new Date(today);
+      end.setDate(today.getDate() + 6);
+      end.setHours(23, 59, 59, 999);
+      return { start: today, end };
+    }
+    case "14-days": {
+      const end = new Date(today);
+      end.setDate(today.getDate() + 13);
+      end.setHours(23, 59, 59, 999);
+      return { start: today, end };
+    }
+    case "21-days": {
+      const end = new Date(today);
+      end.setDate(today.getDate() + 20);
+      end.setHours(23, 59, 59, 999);
+      return { start: today, end };
+    }
+  }
+}
+
 export function filterEvents(
   events: CalendarEvent[],
   statusFilter: "all" | AssignmentStatus,
   searchQuery: string,
-  assigneeFilter: string = "all"
+  assigneeFilter: string = "all",
+  dateFilter?: DateFilterOption
 ): CalendarEvent[] {
   return events.filter((event) => {
     if (statusFilter !== "all" && event.status !== statusFilter) {
@@ -118,6 +168,13 @@ export function filterEvents(
       if (assigneeFilter === "unassigned") {
         if (event.assignedAdult !== null) return false;
       } else if (event.assignedAdult?.email !== assigneeFilter) {
+        return false;
+      }
+    }
+    if (dateFilter) {
+      const { start, end } = getDateRange(dateFilter);
+      const eventDate = new Date(event.start);
+      if (eventDate < start || eventDate > end) {
         return false;
       }
     }
