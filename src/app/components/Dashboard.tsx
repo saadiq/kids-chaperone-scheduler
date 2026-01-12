@@ -48,10 +48,10 @@ function FilterButton({
   return (
     <button
       onClick={onClick}
-      className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+      className={`px-3 py-1.5 text-sm rounded-lg transition-all duration-200 ${
         active
-          ? "bg-blue-600 text-white"
-          : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-300"
+          ? "bg-orange-500 text-white shadow-sm"
+          : "bg-white text-stone-700 hover:bg-stone-100 border border-stone-300"
       }`}
     >
       {label}
@@ -229,20 +229,20 @@ export function Dashboard() {
 
   if (status === "loading") {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-gray-600">Loading...</p>
+      <div className="flex items-center justify-center min-h-screen bg-stone-50">
+        <p className="text-stone-600">Loading...</p>
       </div>
     );
   }
 
   if (!session) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
-        <h1 className="text-2xl font-bold text-gray-900">Kids Chaperone Scheduler</h1>
-        <p className="text-gray-600">Sign in to manage activity assignments</p>
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4 bg-stone-50">
+        <h1 className="text-2xl font-bold text-stone-900">Kids Chaperone Scheduler</h1>
+        <p className="text-stone-600">Sign in to manage activity assignments</p>
         <button
           onClick={() => signIn("google")}
-          className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700"
+          className="px-6 py-3 bg-orange-500 text-white rounded-xl font-medium hover:bg-orange-600 transition-all duration-200 shadow-sm"
         >
           Sign in with Google
         </button>
@@ -251,22 +251,22 @@ export function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
-      <header className="bg-white border-b border-gray-200 px-4 py-4">
+    <div className="min-h-screen bg-stone-50 pb-24">
+      <header className="bg-white border-b border-stone-200 px-4 py-4">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <h1 className="text-xl font-bold text-gray-900">Kids Chaperone Scheduler</h1>
+          <h1 className="text-xl font-bold text-stone-900">Kids Chaperone Scheduler</h1>
           <div className="flex items-center gap-4">
             <button
               onClick={fetchEvents}
               disabled={isLoading}
-              className="text-sm text-blue-600 hover:text-blue-800 disabled:opacity-50"
+              className="text-sm text-orange-600 hover:text-orange-700 disabled:opacity-50 transition-colors"
             >
               {isLoading ? "Refreshing..." : "Refresh"}
             </button>
-            <span className="text-sm text-gray-500">{session.user?.email}</span>
+            <span className="text-sm text-stone-600">{session.user?.email}</span>
             <button
               onClick={() => signOut()}
-              className="text-sm text-gray-700 hover:text-gray-900"
+              className="text-sm text-stone-700 hover:text-stone-900 transition-colors"
             >
               Sign out
             </button>
@@ -291,7 +291,7 @@ export function Dashboard() {
           <select
             value={assigneeFilter}
             onChange={(e) => setAssigneeFilter(e.target.value)}
-            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-white text-gray-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 focus:outline-none focus:border-blue-500"
+            className="px-3 py-1.5 text-sm border border-stone-300 rounded-lg bg-white text-stone-700 focus:ring-2 focus:ring-orange-500 focus:ring-offset-1 focus:outline-none focus:border-orange-500 transition-all duration-200"
           >
             <option value="all">All assignees</option>
             <option value="unassigned">Unassigned</option>
@@ -306,7 +306,7 @@ export function Dashboard() {
             placeholder="Search events..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-white flex-1 min-w-48 focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 focus:outline-none focus:border-blue-500 placeholder:text-gray-500"
+            className="px-3 py-1.5 text-sm border border-stone-300 rounded-lg bg-white flex-1 min-w-48 focus:ring-2 focus:ring-orange-500 focus:ring-offset-1 focus:outline-none focus:border-orange-500 placeholder:text-stone-500 transition-all duration-200"
           />
         </div>
 
@@ -324,25 +324,25 @@ export function Dashboard() {
         </div>
 
         {error && (
-          <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+          <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-700">
             {error}
-            <button onClick={() => setError(null)} className="ml-2 underline">
+            <button onClick={() => setError(null)} className="ml-2 underline hover:no-underline transition-all">
               Dismiss
             </button>
           </div>
         )}
 
         {isLoading && events.length === 0 ? (
-          <p className="text-center text-gray-600 py-12">Loading events...</p>
+          <p className="text-center text-stone-600 py-12">Loading events...</p>
         ) : filteredEvents.length === 0 ? (
-          <p className="text-center text-gray-600 py-12">
+          <p className="text-center text-stone-600 py-12">
             {events.length === 0 ? "No upcoming events found" : "No events match filters"}
           </p>
         ) : (
           <div className="space-y-6">
             {groupedEvents.map((day) => (
               <div key={day.date} className="space-y-3">
-                <h2 className="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2">
+                <h2 className="text-lg font-semibold text-stone-800 border-b border-stone-200 pb-2">
                   {day.dateLabel}
                 </h2>
                 {day.kidGroups.map((group) => {
@@ -359,9 +359,9 @@ export function Dashboard() {
                             if (el) el.indeterminate = someSelected && !allSelected;
                           }}
                           onChange={() => handleToggleKidGroup(groupEventIds)}
-                          className="h-4 w-4 text-blue-600 rounded accent-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+                          className="h-4 w-4 text-orange-600 rounded accent-orange-500 focus:ring-2 focus:ring-orange-500 focus:ring-offset-1"
                         />
-                        <span className="text-sm font-medium text-gray-700">{group.kid}</span>
+                        <span className="text-sm font-medium text-stone-700">{group.kid}</span>
                       </label>
                       <div className="space-y-1">
                         {group.events.map((event) => (
