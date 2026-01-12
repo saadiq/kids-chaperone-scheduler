@@ -1,54 +1,9 @@
 import { google } from "googleapis";
-import { CalendarEvent, AssignmentStatus, KidName } from "./types";
+import { CalendarEvent } from "./types";
+import { detectKid, getAssignmentStatus } from "./event-utils";
 
 const ADULT_EMAILS = (process.env.ADULT_EMAILS || "").split(",").map((e) => e.trim().toLowerCase());
 const KID_NAMES = (process.env.KID_NAMES || "").split(",").map((n) => n.trim()).filter(Boolean);
-
-function detectKid(title: string): KidName {
-  const lowerTitle = title.toLowerCase();
-  for (const kid of KID_NAMES) {
-    if (lowerTitle.includes(kid.toLowerCase())) {
-      return kid;
-    }
-  }
-  return null;
-}
-
-function getAssignmentStatus(
-  attendees: { email?: string | null; responseStatus?: string | null }[] | undefined
-): { status: AssignmentStatus; assignedAdult: CalendarEvent["assignedAdult"] } {
-  if (!attendees) {
-    return { status: "needs-assignment", assignedAdult: null };
-  }
-
-  const adultAttendee = attendees.find((a) =>
-    ADULT_EMAILS.includes(a.email?.toLowerCase() || "")
-  );
-
-  if (!adultAttendee) {
-    return { status: "needs-assignment", assignedAdult: null };
-  }
-
-  const responseStatus = adultAttendee.responseStatus || "needsAction";
-
-  let status: AssignmentStatus;
-  if (responseStatus === "accepted") {
-    status = "confirmed";
-  } else if (responseStatus === "declined") {
-    status = "needs-assignment";
-  } else {
-    status = "awaiting-response";
-  }
-
-  return {
-    status,
-    assignedAdult: {
-      email: adultAttendee.email || "",
-      name: adultAttendee.email?.split("@")[0] || "",
-      responseStatus,
-    },
-  };
-}
 
 export async function getEvents(accessToken: string): Promise<CalendarEvent[]> {
   const oauth2Client = new google.auth.OAuth2();
@@ -71,7 +26,7 @@ export async function getEvents(accessToken: string): Promise<CalendarEvent[]> {
   const events = response.data.items || [];
 
   return events.map((event) => {
-    const { status, assignedAdult } = getAssignmentStatus(event.attendees);
+    const { status, assignedAdult } = getAssignmentStatus(event.attendees, ADULT_EMAILS);
     const isAllDay = !event.start?.dateTime;
     const title = event.summary || "Untitled Event";
 
@@ -82,7 +37,7 @@ export async function getEvents(accessToken: string): Promise<CalendarEvent[]> {
       end: event.end?.dateTime || event.end?.date || "",
       allDay: isAllDay,
       status,
-      kid: detectKid(title),
+      kid: detectKid(title, KID_NAMES),
       assignedAdult,
     };
   });
