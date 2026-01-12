@@ -189,7 +189,7 @@ describe("filterEvents", () => {
       allDay: false,
       status: "confirmed",
       kid: "Zola",
-      assignedAdult: { email: "parent@gmail.com", name: "parent", responseStatus: "accepted" },
+      assignedAdult: { email: "parent1@gmail.com", name: "parent1", responseStatus: "accepted" },
     },
     {
       id: "3",
@@ -199,7 +199,7 @@ describe("filterEvents", () => {
       allDay: false,
       status: "awaiting-response",
       kid: "Asa",
-      assignedAdult: { email: "parent@gmail.com", name: "parent", responseStatus: "needsAction" },
+      assignedAdult: { email: "parent2@gmail.com", name: "parent2", responseStatus: "needsAction" },
     },
   ];
 
@@ -232,5 +232,27 @@ describe("filterEvents", () => {
   test("handles empty search with status filter", () => {
     expect(filterEvents(events, "confirmed", "").length).toBe(1);
     expect(filterEvents(events, "confirmed", "")[0].title).toBe("Zola Dance");
+  });
+
+  test("filters by assignee email", () => {
+    expect(filterEvents(events, "all", "", "parent1@gmail.com").length).toBe(1);
+    expect(filterEvents(events, "all", "", "parent1@gmail.com")[0].title).toBe("Zola Dance");
+    expect(filterEvents(events, "all", "", "parent2@gmail.com").length).toBe(1);
+    expect(filterEvents(events, "all", "", "parent2@gmail.com")[0].title).toBe("Asa Piano");
+  });
+
+  test("filters unassigned events", () => {
+    expect(filterEvents(events, "all", "", "unassigned").length).toBe(1);
+    expect(filterEvents(events, "all", "", "unassigned")[0].title).toBe("Asa Soccer");
+  });
+
+  test("returns all when assignee filter is 'all'", () => {
+    expect(filterEvents(events, "all", "", "all").length).toBe(3);
+  });
+
+  test("combines assignee with other filters", () => {
+    expect(filterEvents(events, "confirmed", "", "parent1@gmail.com").length).toBe(1);
+    expect(filterEvents(events, "needs-assignment", "", "parent1@gmail.com").length).toBe(0);
+    expect(filterEvents(events, "all", "Piano", "parent2@gmail.com").length).toBe(1);
   });
 });
