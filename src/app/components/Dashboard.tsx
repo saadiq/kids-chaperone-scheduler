@@ -40,19 +40,17 @@ function FilterButton({
   label,
   shortLabel,
   count,
-  hideCount,
 }: {
   active: boolean;
   onClick: () => void;
   label: string;
   shortLabel?: string;
   count: number;
-  hideCount?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
-      className={`px-2 sm:px-3 py-1.5 text-xs sm:text-sm rounded-lg transition-all duration-200 whitespace-nowrap flex-shrink-0 ${
+      className={`px-2 sm:px-3 py-1.5 text-xs sm:text-sm rounded-lg transition-colors duration-200 whitespace-nowrap flex-shrink-0 ${
         active
           ? "bg-orange-500 text-white shadow-sm"
           : "bg-white text-stone-700 hover:bg-stone-100 border border-stone-300"
@@ -60,7 +58,7 @@ function FilterButton({
     >
       <span className="sm:hidden">{shortLabel || label}</span>
       <span className="hidden sm:inline">{label}</span>
-      {!hideCount && <span className="ml-1 text-xs opacity-75">({count})</span>}
+      <span className="ml-1 text-xs opacity-75">({count})</span>
     </button>
   );
 }

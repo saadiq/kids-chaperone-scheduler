@@ -25,7 +25,7 @@ export function BatchActionBar({
   if (selectedCount === 0) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-stone-200 shadow-lg p-3 sm:p-4 safe-area-inset-bottom">
+    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-stone-200 shadow-lg p-3 sm:p-4 pb-safe">
       <div className="max-w-4xl mx-auto">
         {/* Mobile: stacked, Desktop: inline */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">

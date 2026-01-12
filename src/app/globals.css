@@ -30,3 +30,14 @@ body {
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-nunito), system-ui, sans-serif;
 }
+
+/* iOS safe area support */
+.pb-safe {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+
+@screen sm {
+  .pb-safe {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+}

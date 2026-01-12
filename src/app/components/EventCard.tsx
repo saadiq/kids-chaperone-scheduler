@@ -91,7 +91,7 @@ export function EventCard({
         {/* Bottom row on mobile: time + assignee + status */}
         <div className="flex items-center gap-2 pl-7 sm:pl-0 sm:flex-shrink-0">
           {/* Time - mobile only */}
-          <span className="sm:hidden text-xs text-stone-500">
+          <span className="sm:hidden text-xs text-stone-600">
             {formatTime(event.start, event.allDay)}
           </span>
 
