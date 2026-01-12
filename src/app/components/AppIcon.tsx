@@ -1,0 +1,26 @@
+interface AppIconProps {
+  size?: number;
+  className?: string;
+}
+
+export function AppIcon({ size = 32, className = "" }: AppIconProps) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 32 32"
+      width={size}
+      height={size}
+      className={className}
+    >
+      <rect x="2" y="6" width="28" height="24" rx="3" fill="#F97316" />
+      <rect x="2" y="6" width="28" height="7" rx="3" fill="#EA580C" />
+      <rect x="6" y="2" width="3" height="6" rx="1" fill="#C2410C" />
+      <rect x="23" y="2" width="3" height="6" rx="1" fill="#C2410C" />
+      <rect x="6" y="16" width="4" height="4" rx="1" fill="white" />
+      <rect x="14" y="16" width="4" height="4" rx="1" fill="white" />
+      <rect x="22" y="16" width="4" height="4" rx="1" fill="white" />
+      <rect x="6" y="23" width="4" height="4" rx="1" fill="white" />
+      <rect x="14" y="23" width="4" height="4" rx="1" fill="white" />
+    </svg>
+  );
+}
