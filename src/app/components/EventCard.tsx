@@ -6,6 +6,8 @@ interface EventCardProps {
   event: CalendarEvent;
   selected: boolean;
   onToggleSelect: (id: string) => void;
+  currentUserEmail?: string;
+  onAccept?: (eventId: string) => void;
 }
 
 function formatTime(dateStr: string, allDay: boolean): string {
@@ -40,7 +42,19 @@ function getStatusBadge(status: CalendarEvent["status"]) {
   }
 }
 
-export function EventCard({ event, selected, onToggleSelect }: EventCardProps) {
+export function EventCard({
+  event,
+  selected,
+  onToggleSelect,
+  currentUserEmail,
+  onAccept,
+}: EventCardProps) {
+  const canAccept =
+    currentUserEmail &&
+    onAccept &&
+    event.status === "awaiting-response" &&
+    event.assignedAdult?.email.toLowerCase() === currentUserEmail.toLowerCase();
+
   return (
     <div
       className={`p-3 border rounded-lg flex items-center gap-3 ${
@@ -64,7 +78,16 @@ export function EventCard({ event, selected, onToggleSelect }: EventCardProps) {
           {event.assignedAdult.name}
         </span>
       )}
-      {getStatusBadge(event.status)}
+      {canAccept ? (
+        <button
+          onClick={() => onAccept(event.id)}
+          className="px-2 py-0.5 text-xs font-medium bg-green-600 text-white rounded hover:bg-green-700"
+        >
+          Accept
+        </button>
+      ) : (
+        getStatusBadge(event.status)
+      )}
     </div>
   );
 }
