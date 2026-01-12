@@ -51,7 +51,7 @@ function FilterButton({
       className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
         active
           ? "bg-blue-600 text-white"
-          : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
+          : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-300"
       }`}
     >
       {label}
@@ -79,6 +79,10 @@ export function Dashboard() {
     setError(null);
     try {
       const res = await fetch("/api/events");
+      if (res.status === 401) {
+        signOut();
+        return;
+      }
       if (!res.ok) throw new Error("Failed to fetch events");
       const data = await res.json();
       setEvents(data);
@@ -90,6 +94,11 @@ export function Dashboard() {
   }, []);
 
   useEffect(() => {
+    // Handle token refresh failure
+    if (session?.error === "RefreshAccessTokenError") {
+      signOut();
+      return;
+    }
     if (session?.accessToken) {
       fetchEvents();
     }
@@ -143,6 +152,10 @@ export function Dashboard() {
           adultEmail: selectedAdult,
         }),
       });
+      if (res.status === 401) {
+        signOut();
+        return;
+      }
       if (!res.ok) throw new Error("Failed to assign");
       setSelectedIds(new Set());
       setSelectedAdult("");
@@ -166,6 +179,10 @@ export function Dashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ eventId }),
       });
+      if (res.status === 401) {
+        signOut();
+        return;
+      }
       if (!res.ok) throw new Error("Failed to accept invite");
       await fetchEvents();
     } catch (err) {
@@ -213,7 +230,7 @@ export function Dashboard() {
   if (status === "loading") {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <p className="text-gray-500">Loading...</p>
+        <p className="text-gray-600">Loading...</p>
       </div>
     );
   }
@@ -249,7 +266,7 @@ export function Dashboard() {
             <span className="text-sm text-gray-500">{session.user?.email}</span>
             <button
               onClick={() => signOut()}
-              className="text-sm text-gray-600 hover:text-gray-800"
+              className="text-sm text-gray-700 hover:text-gray-900"
             >
               Sign out
             </button>
@@ -274,7 +291,7 @@ export function Dashboard() {
           <select
             value={assigneeFilter}
             onChange={(e) => setAssigneeFilter(e.target.value)}
-            className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white"
+            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-white text-gray-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 focus:outline-none focus:border-blue-500"
           >
             <option value="all">All assignees</option>
             <option value="unassigned">Unassigned</option>
@@ -289,7 +306,7 @@ export function Dashboard() {
             placeholder="Search events..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white flex-1 min-w-48"
+            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-white flex-1 min-w-48 focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 focus:outline-none focus:border-blue-500 placeholder:text-gray-500"
           />
         </div>
 
@@ -316,9 +333,9 @@ export function Dashboard() {
         )}
 
         {isLoading && events.length === 0 ? (
-          <p className="text-center text-gray-500 py-12">Loading events...</p>
+          <p className="text-center text-gray-600 py-12">Loading events...</p>
         ) : filteredEvents.length === 0 ? (
-          <p className="text-center text-gray-500 py-12">
+          <p className="text-center text-gray-600 py-12">
             {events.length === 0 ? "No upcoming events found" : "No events match filters"}
           </p>
         ) : (
@@ -342,9 +359,9 @@ export function Dashboard() {
                             if (el) el.indeterminate = someSelected && !allSelected;
                           }}
                           onChange={() => handleToggleKidGroup(groupEventIds)}
-                          className="h-4 w-4 text-blue-600 rounded"
+                          className="h-4 w-4 text-blue-600 rounded accent-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
                         />
-                        <span className="text-sm font-medium text-gray-600">{group.kid}</span>
+                        <span className="text-sm font-medium text-gray-700">{group.kid}</span>
                       </label>
                       <div className="space-y-1">
                         {group.events.map((event) => (
