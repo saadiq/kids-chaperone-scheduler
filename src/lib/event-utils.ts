@@ -115,48 +115,39 @@ export function getDateRange(filter: DateFilterOption): { start: Date; end: Date
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
+  function endOfDay(date: Date): Date {
+    date.setHours(23, 59, 59, 999);
+    return date;
+  }
+
+  function addDays(base: Date, days: number): Date {
+    const result = new Date(base);
+    result.setDate(base.getDate() + days);
+    return result;
+  }
+
+  const dayOfWeek = today.getDay();
+
   switch (filter) {
     case "this-week": {
-      const dayOfWeek = today.getDay();
       const daysUntilSunday = dayOfWeek === 0 ? 0 : 7 - dayOfWeek;
-      const endOfWeek = new Date(today);
-      endOfWeek.setDate(today.getDate() + daysUntilSunday);
-      endOfWeek.setHours(23, 59, 59, 999);
-      return { start: today, end: endOfWeek };
+      return { start: today, end: endOfDay(addDays(today, daysUntilSunday)) };
     }
     case "next-week": {
-      const dayOfWeek = today.getDay();
       const daysUntilNextMonday = dayOfWeek === 0 ? 1 : 8 - dayOfWeek;
-      const nextMonday = new Date(today);
-      nextMonday.setDate(today.getDate() + daysUntilNextMonday);
-      const nextSunday = new Date(nextMonday);
-      nextSunday.setDate(nextMonday.getDate() + 6);
-      nextSunday.setHours(23, 59, 59, 999);
-      return { start: nextMonday, end: nextSunday };
+      const nextMonday = addDays(today, daysUntilNextMonday);
+      return { start: nextMonday, end: endOfDay(addDays(nextMonday, 6)) };
     }
     case "this-month": {
       const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-      endOfMonth.setHours(23, 59, 59, 999);
-      return { start: today, end: endOfMonth };
+      return { start: today, end: endOfDay(endOfMonth) };
     }
-    case "7-days": {
-      const end = new Date(today);
-      end.setDate(today.getDate() + 6);
-      end.setHours(23, 59, 59, 999);
-      return { start: today, end };
-    }
-    case "14-days": {
-      const end = new Date(today);
-      end.setDate(today.getDate() + 13);
-      end.setHours(23, 59, 59, 999);
-      return { start: today, end };
-    }
-    case "21-days": {
-      const end = new Date(today);
-      end.setDate(today.getDate() + 20);
-      end.setHours(23, 59, 59, 999);
-      return { start: today, end };
-    }
+    case "7-days":
+      return { start: today, end: endOfDay(addDays(today, 6)) };
+    case "14-days":
+      return { start: today, end: endOfDay(addDays(today, 13)) };
+    case "21-days":
+      return { start: today, end: endOfDay(addDays(today, 20)) };
   }
 }
 
