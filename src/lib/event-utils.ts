@@ -116,8 +116,9 @@ export function getDateRange(filter: DateFilterOption): { start: Date; end: Date
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
   function endOfDay(date: Date): Date {
-    date.setHours(23, 59, 59, 999);
-    return date;
+    const result = new Date(date);
+    result.setHours(23, 59, 59, 999);
+    return result;
   }
 
   function addDays(base: Date, days: number): Date {
