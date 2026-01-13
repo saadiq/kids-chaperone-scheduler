@@ -1,12 +1,21 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
-import { useSession, signIn, signOut } from "next-auth/react";
-import { CalendarEvent, Adult, AssignmentStatus, DateFilterOption } from "@/lib/types";
+import { useSession, signOut } from "next-auth/react";
+import { CalendarEvent, Adult, DateFilterOption } from "@/lib/types";
 import { groupEventsByDayAndKid, filterEvents, isEventInDateRange } from "@/lib/event-utils";
-import { EventCard } from "./EventCard";
 import { BatchActionBar } from "./BatchActionBar";
-import { AppIcon } from "./AppIcon";
+import { Header } from "./Header";
+import { LoginScreen } from "./LoginScreen";
+import { LoadingScreen } from "./LoadingScreen";
+import { EventList } from "./EventList";
+import {
+  StatusFilterRow,
+  DateFilterRow,
+  SearchAndAssigneeFilter,
+  DATE_FILTER_OPTIONS,
+  StatusFilter,
+} from "./FilterControls";
 
 const ADULTS: Adult[] = (process.env.NEXT_PUBLIC_ADULT_EMAILS || "")
   .split(",")
@@ -16,53 +25,6 @@ const ADULTS: Adult[] = (process.env.NEXT_PUBLIC_ADULT_EMAILS || "")
     email,
     name: email.split("@")[0],
   }));
-
-type StatusFilter = "all" | AssignmentStatus;
-
-const STATUS_OPTIONS: { value: StatusFilter; label: string; shortLabel: string }[] = [
-  { value: "all", label: "All", shortLabel: "All" },
-  { value: "needs-assignment", label: "Needs Assignment", shortLabel: "Unassigned" },
-  { value: "awaiting-response", label: "Pending", shortLabel: "Pending" },
-  { value: "confirmed", label: "Confirmed", shortLabel: "Confirmed" },
-];
-
-const DATE_FILTER_OPTIONS: { value: DateFilterOption; label: string }[] = [
-  { value: "this-week", label: "This Week" },
-  { value: "next-week", label: "Next Week" },
-  { value: "this-month", label: "This Month" },
-  { value: "7-days", label: "7 Days" },
-  { value: "14-days", label: "14 Days" },
-  { value: "21-days", label: "21 Days" },
-];
-
-function FilterButton({
-  active,
-  onClick,
-  label,
-  shortLabel,
-  count,
-}: {
-  active: boolean;
-  onClick: () => void;
-  label: string;
-  shortLabel?: string;
-  count: number;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`px-2 sm:px-3 py-1.5 text-xs sm:text-sm rounded-lg transition-colors duration-200 whitespace-nowrap flex-shrink-0 ${
-        active
-          ? "bg-orange-500 text-white shadow-sm"
-          : "bg-white text-stone-700 hover:bg-stone-100 border border-stone-300"
-      }`}
-    >
-      <span className="sm:hidden">{shortLabel || label}</span>
-      <span className="hidden sm:inline">{label}</span>
-      <span className="ml-1 text-xs opacity-75">({count})</span>
-    </button>
-  );
-}
 
 export function Dashboard() {
   const { data: session, status } = useSession();
@@ -232,112 +194,42 @@ export function Dashboard() {
   }, [events]);
 
   if (status === "loading") {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-stone-50">
-        <p className="text-stone-600">Loading...</p>
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   if (!session) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen gap-6 bg-stone-50 px-4">
-        <AppIcon size={72} />
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-stone-900">Kids Chaperone Scheduler</h1>
-          <p className="text-stone-600 mt-1">Sign in to manage activity assignments</p>
-        </div>
-        <button
-          onClick={() => signIn("google")}
-          className="px-6 py-3 bg-orange-500 text-white rounded-xl font-medium hover:bg-orange-600 transition-all duration-200 shadow-sm"
-        >
-          Sign in with Google
-        </button>
-      </div>
-    );
+    return <LoginScreen />;
   }
 
   return (
     <div className="min-h-screen bg-stone-50 pb-28 sm:pb-24">
-      <header className="bg-white border-b border-stone-200 px-4 py-3 sm:py-4">
-        <div className="max-w-4xl mx-auto">
-          {/* Mobile: stacked, Desktop: inline */}
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2">
-              <AppIcon size={28} />
-              <h1 className="text-lg sm:text-xl font-bold text-stone-900">Kids Chaperone Scheduler</h1>
-            </div>
-            <div className="flex items-center gap-3 sm:gap-4 text-sm">
-              <button
-                onClick={fetchEvents}
-                disabled={isLoading}
-                className="text-orange-600 hover:text-orange-700 disabled:opacity-50 transition-colors"
-              >
-                {isLoading ? "Refreshing..." : "Refresh"}
-              </button>
-              <span className="text-stone-600 truncate max-w-32 sm:max-w-none">{session.user?.email}</span>
-              <button
-                onClick={() => signOut()}
-                className="text-stone-700 hover:text-stone-900 transition-colors"
-              >
-                Sign out
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Header
+        userEmail={session.user?.email}
+        isLoading={isLoading}
+        onRefresh={fetchEvents}
+        onSignOut={() => signOut()}
+      />
 
       <div className="max-w-4xl mx-auto px-4 py-4 space-y-3 sm:space-y-4">
-        {/* Status Filters - horizontally scrollable on mobile */}
-        <div className="flex gap-1 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 sm:overflow-visible sm:flex-wrap">
-          {STATUS_OPTIONS.map((opt) => (
-            <FilterButton
-              key={opt.value}
-              active={statusFilter === opt.value}
-              onClick={() => setStatusFilter(opt.value)}
-              label={opt.label}
-              shortLabel={opt.shortLabel}
-              count={statusCounts[opt.value]}
-            />
-          ))}
-        </div>
+        <StatusFilterRow
+          statusFilter={statusFilter}
+          onStatusFilterChange={setStatusFilter}
+          statusCounts={statusCounts}
+        />
 
-        {/* Search and Assignee Filter */}
-        <div className="flex flex-col gap-2 sm:flex-row sm:gap-4 sm:items-center">
-          <input
-            type="text"
-            placeholder="Search events..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="px-3 py-2 sm:py-1.5 text-sm border border-stone-300 rounded-lg bg-white w-full sm:flex-1 sm:min-w-48 focus:ring-2 focus:ring-orange-500 focus:ring-offset-1 focus:outline-none focus:border-orange-500 placeholder:text-stone-500 transition-all duration-200"
-          />
-          <select
-            value={assigneeFilter}
-            onChange={(e) => setAssigneeFilter(e.target.value)}
-            className="px-3 py-2 sm:py-1.5 text-sm border border-stone-300 rounded-lg bg-white text-stone-700 focus:ring-2 focus:ring-orange-500 focus:ring-offset-1 focus:outline-none focus:border-orange-500 transition-all duration-200"
-          >
-            <option value="all">All assignees</option>
-            <option value="unassigned">Unassigned</option>
-            {ADULTS.map((adult) => (
-              <option key={adult.email} value={adult.email}>
-                {adult.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        <SearchAndAssigneeFilter
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          assigneeFilter={assigneeFilter}
+          onAssigneeFilterChange={setAssigneeFilter}
+          adults={ADULTS}
+        />
 
-        {/* Date Filter - horizontally scrollable on mobile */}
-        <div className="flex gap-1 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 sm:overflow-visible sm:flex-wrap">
-          {DATE_FILTER_OPTIONS.map((opt) => (
-            <FilterButton
-              key={opt.value}
-              active={dateFilter === opt.value}
-              onClick={() => setDateFilter(opt.value)}
-              label={opt.label}
-              count={dateCounts[opt.value]}
-            />
-          ))}
-        </div>
+        <DateFilterRow
+          dateFilter={dateFilter}
+          onDateFilterChange={setDateFilter}
+          dateCounts={dateCounts}
+        />
 
         {error && (
           <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-700">
@@ -348,56 +240,17 @@ export function Dashboard() {
           </div>
         )}
 
-        {isLoading && events.length === 0 ? (
-          <p className="text-center text-stone-600 py-12">Loading events...</p>
-        ) : filteredEvents.length === 0 ? (
-          <p className="text-center text-stone-600 py-12">
-            {events.length === 0 ? "No upcoming events found" : "No events match filters"}
-          </p>
-        ) : (
-          <div className="space-y-6">
-            {groupedEvents.map((day) => (
-              <div key={day.date} className="space-y-3">
-                <h2 className="text-lg font-semibold text-stone-800 border-b border-stone-200 pb-2">
-                  {day.dateLabel}
-                </h2>
-                {day.kidGroups.map((group) => {
-                  const groupEventIds = group.events.map((e) => e.id);
-                  const allSelected = groupEventIds.every((id) => selectedIds.has(id));
-                  const someSelected = groupEventIds.some((id) => selectedIds.has(id));
-                  return (
-                    <div key={group.kid} className="ml-2 space-y-1">
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={allSelected}
-                          ref={(el) => {
-                            if (el) el.indeterminate = someSelected && !allSelected;
-                          }}
-                          onChange={() => handleToggleKidGroup(groupEventIds)}
-                          className="h-4 w-4 text-orange-600 rounded accent-orange-500 focus:ring-2 focus:ring-orange-500 focus:ring-offset-1"
-                        />
-                        <span className="text-sm font-medium text-stone-700">{group.kid}</span>
-                      </label>
-                      <div className="space-y-1">
-                        {group.events.map((event) => (
-                          <EventCard
-                            key={event.id}
-                            event={event}
-                            selected={selectedIds.has(event.id)}
-                            onToggleSelect={handleToggleSelect}
-                            currentUserEmail={session.user?.email ?? undefined}
-                            onAccept={handleAccept}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-        )}
+        <EventList
+          isLoading={isLoading}
+          events={events}
+          filteredEvents={filteredEvents}
+          groupedEvents={groupedEvents}
+          selectedIds={selectedIds}
+          onToggleKidGroup={handleToggleKidGroup}
+          onToggleSelect={handleToggleSelect}
+          currentUserEmail={session.user?.email ?? undefined}
+          onAccept={handleAccept}
+        />
       </div>
 
       <BatchActionBar
