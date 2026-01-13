@@ -1,22 +1,25 @@
-import { google } from "googleapis";
+import { google, calendar_v3 } from "googleapis";
 import { CalendarEvent } from "./types";
 import { detectKid, getAssignmentStatus } from "./event-utils";
 
 const ADULT_EMAILS = (process.env.ADULT_EMAILS || "").split(",").map((e) => e.trim().toLowerCase());
 const KID_NAMES = (process.env.KID_NAMES || "").split(",").map((n) => n.trim()).filter(Boolean);
+const CALENDAR_ID = process.env.GOOGLE_CALENDAR_ID!;
 
-export async function getEvents(accessToken: string): Promise<CalendarEvent[]> {
+function createCalendarClient(accessToken: string): calendar_v3.Calendar {
   const oauth2Client = new google.auth.OAuth2();
   oauth2Client.setCredentials({ access_token: accessToken });
+  return google.calendar({ version: "v3", auth: oauth2Client });
+}
 
-  const calendar = google.calendar({ version: "v3", auth: oauth2Client });
-  const calendarId = process.env.GOOGLE_CALENDAR_ID!;
+export async function getEvents(accessToken: string): Promise<CalendarEvent[]> {
+  const calendar = createCalendarClient(accessToken);
 
   const now = new Date();
   const thirtyDaysLater = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
   const response = await calendar.events.list({
-    calendarId,
+    calendarId: CALENDAR_ID,
     timeMin: now.toISOString(),
     timeMax: thirtyDaysLater.toISOString(),
     singleEvents: true,
@@ -48,14 +51,10 @@ export async function assignAdultToEvents(
   eventIds: string[],
   adultEmail: string
 ): Promise<void> {
-  const oauth2Client = new google.auth.OAuth2();
-  oauth2Client.setCredentials({ access_token: accessToken });
-
-  const calendar = google.calendar({ version: "v3", auth: oauth2Client });
-  const calendarId = process.env.GOOGLE_CALENDAR_ID!;
+  const calendar = createCalendarClient(accessToken);
 
   for (const eventId of eventIds) {
-    const event = await calendar.events.get({ calendarId, eventId });
+    const event = await calendar.events.get({ calendarId: CALENDAR_ID, eventId });
 
     const existingAttendees = event.data.attendees || [];
     const filteredAttendees = existingAttendees.filter(
@@ -68,7 +67,7 @@ export async function assignAdultToEvents(
     ];
 
     await calendar.events.patch({
-      calendarId,
+      calendarId: CALENDAR_ID,
       eventId,
       sendUpdates: "all",
       requestBody: {
@@ -83,13 +82,9 @@ export async function acceptEventInvite(
   eventId: string,
   userEmail: string
 ): Promise<void> {
-  const oauth2Client = new google.auth.OAuth2();
-  oauth2Client.setCredentials({ access_token: accessToken });
+  const calendar = createCalendarClient(accessToken);
 
-  const calendar = google.calendar({ version: "v3", auth: oauth2Client });
-  const calendarId = process.env.GOOGLE_CALENDAR_ID!;
-
-  const event = await calendar.events.get({ calendarId, eventId });
+  const event = await calendar.events.get({ calendarId: CALENDAR_ID, eventId });
   const attendees = event.data.attendees || [];
 
   let userFound = false;
@@ -106,7 +101,7 @@ export async function acceptEventInvite(
   }
 
   await calendar.events.patch({
-    calendarId,
+    calendarId: CALENDAR_ID,
     eventId,
     requestBody: {
       attendees: updatedAttendees,
